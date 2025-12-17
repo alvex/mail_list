@@ -1,3 +1,22 @@
+<?php
+session_start();
+
+$timeout = 30 * 60; // 30 minutes
+
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit();
+}
+
+if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > $timeout)) {
+    session_unset();
+    session_destroy();
+    header("Location: login.php");
+    exit();
+}
+
+$_SESSION['last_activity'] = time();
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -12,11 +31,14 @@
 </head>
 <body>
 <div class="container">
-    <h1>Lista de Usuarios</h1>
+    <?php $activePage = 'epostlista'; require_once 'top_menu.php'; ?>
+       <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>Lista de Usuarios</h1>
+    </div>
     <form id="user-form">
         <div>
             <label for="customers_id">Customer ID:</label>
-            <input type="number" id="customers_id" name="customers_id" required>
+            <input type="number" id="customers_id" name="customers_id">
         </div>
         <div>
             <label for="customers_type">Customer Type:</label>
@@ -27,6 +49,10 @@
         </div>
         <button type="submit">Enviar</button>
     </form>
+    <div id="latestSummary" style="display:flex; gap:10px; flex-wrap:wrap; margin-top: 10px; margin-bottom: 10px;">
+        <span id="latestActive" class="kundlista-badge">Senaste aktiv: -</span>
+        <span id="latestTemp" class="kundlista-badge">Senaste temp: -</span>
+    </div>
     <div id="message" style="color: red;"></div>
     <table id="user-table">
         <thead>
@@ -45,6 +71,32 @@
 </div>
 
 <script>
+function formatLatestRow(row) {
+    if (!row) {
+        return '-';
+    }
+    const kundnr = row.kundnr ?? '-';
+    const name = row.name ?? '';
+    const email = row.email ?? '';
+    const details = [name, email].filter(Boolean).join(' - ');
+    return kundnr + (details ? (' - ' + details) : '');
+}
+
+async function loadLatestSummary() {
+    try {
+        const res = await fetch('fetch_data.php?action=latest');
+        if (res.status === 403) {
+            window.location.href = 'login.php';
+            return;
+        }
+        const data = await res.json();
+        document.getElementById('latestActive').textContent = 'Senaste aktiv: ' + formatLatestRow(data && data.active ? data.active : null);
+        document.getElementById('latestTemp').textContent = 'Senaste temp: ' + formatLatestRow(data && data.temp ? data.temp : null);
+    } catch (e) {
+        console.error(e);
+    }
+}
+
 document.getElementById('user-form').addEventListener('submit', async (event) => {
     event.preventDefault();
     const customers_id = document.getElementById('customers_id').value;
@@ -55,6 +107,12 @@ document.getElementById('user-form').addEventListener('submit', async (event) =>
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ customers_id, customers_type })
         });
+
+        if (response.status === 403) {
+            window.location.href = 'login.php';
+            return;
+        }
+
         const result = await response.json();
         const messageDiv = document.getElementById('message');
         const userTable = document.getElementById('user-table').getElementsByTagName('tbody')[0];
@@ -84,6 +142,8 @@ document.getElementById('user-form').addEventListener('submit', async (event) =>
         console.error('Error fetching data:', error);
     }
 });
+
+loadLatestSummary();
 
 // Función para convertir datos seleccionados de la tabla a CSV
 function tableToCSV(table) {
