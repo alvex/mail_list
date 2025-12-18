@@ -1,6 +1,6 @@
 <?php
 require_once 'db_config.php';
-require_once 'db_functions.php';
+require_once 'database-handler.php';
 
 header('Content-Type: application/json');
 

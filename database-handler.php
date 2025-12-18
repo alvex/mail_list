@@ -1,17 +1,12 @@
 <?php
-// db_config.php
-define('DB_HOST', 'localhost');
-define('DB_USER', 'your_username');
-define('DB_PASS', 'your_password');
-define('DB_NAME', 'your_database_name');
+require_once 'db_multi.php';
 
-// db_functions.php
 function getDbConnection() {
-    $conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
-    if ($conn->connect_error) {
-        die("Connection failed: " . $conn->connect_error);
+    try {
+        return getDbConnectionFor(DB_NAME_USERS_MAIL);
+    } catch (Exception $e) {
+        die('Connection failed');
     }
-    return $conn;
 }
 
 function saveSearchHistory($highestCustomerNumber, $customerType) {

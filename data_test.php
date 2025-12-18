@@ -1,15 +1,11 @@
 <?php
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "users_mail";
+require_once 'db_multi.php';
 
-$conn = new mysqli($servername, $username, $password, $dbname);
-
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-} else {
+try {
+    $conn = getDbConnectionFor(DB_NAME_USERS_MAIL);
     echo "Connection successful<br>";
+} catch (Exception $e) {
+    die('Connection failed');
 }
 
 // Consulta de prueba

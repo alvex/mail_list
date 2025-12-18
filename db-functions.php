@@ -1,6 +1,6 @@
 <?php
 // Asegurarse de que el archivo de configuración esté incluido
-require_once 'db_config.php';
+require_once 'db_multi.php';
 
 /**
  * Establece una conexión con la base de datos
@@ -9,12 +9,7 @@ require_once 'db_config.php';
  */
 function getDbConnection() {
     try {
-        $conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
-        if ($conn->connect_error) {
-            throw new Exception("Connection failed: " . $conn->connect_error);
-        }
-        $conn->set_charset("utf8mb4");
-        return $conn;
+        return getDbConnectionFor(DB_NAME);
     } catch (Exception $e) {
         error_log("Database connection error: " . $e->getMessage());
         throw $e;
