@@ -1,6 +1,7 @@
 <?php
 session_start();
 
+// OBS: Denna endpoint returnerar kunders e-post; sessionskydd krävs.
 // Check if user is logged in
 $timeout = 30 * 60; // 30 minutes
 
@@ -25,6 +26,8 @@ $_SESSION['last_activity'] = time();
 header('Content-Type: application/json');
 include 'config.php';
 
+// Syfte: Säkerställ att mail-historiktabellen finns.
+// OBS: Tabellen används som en enkel cursor för att undvika att hämta samma kunder igen.
 function ensure_mail_history_table($conn) {
     $sql = "CREATE TABLE IF NOT EXISTS si_mail_history (" .
         "id INT AUTO_INCREMENT PRIMARY KEY," .
@@ -42,6 +45,7 @@ function ensure_mail_history_table($conn) {
     }
 }
 
+// Syfte: Hämta senast behandlade kund för given typ (används för UI-status + cursor).
 function get_latest_mail_history($conn, $customerType) {
     $sql = "SELECT kundnr, name, email, created_at FROM si_mail_history WHERE customer_type = ? ORDER BY created_at DESC, id DESC LIMIT 1";
     $stmt = $conn->prepare($sql);
@@ -67,6 +71,7 @@ try {
 
 if (isset($_GET['action']) && strtolower((string)$_GET['action']) === 'latest') {
     try {
+        // Syfte: Status-endpoint för UI.
         $latestActive = get_latest_mail_history($conn, 1);
         $latestTemp = get_latest_mail_history($conn, 2);
         echo json_encode([
@@ -84,6 +89,8 @@ if (isset($_GET['action']) && strtolower((string)$_GET['action']) === 'latest') 
     }
 }
 
+// Syfte: Huvud-endpoint (POST). Returnerar nästa batch av kunder sedan senast kända cursor.
+// OBS: customers_id finns kvar i request men används inte här; cursor kommer från historiken.
 // Obtener datos del formulario enviado vía POST
 $postData = json_decode(file_get_contents("php://input"));
 //echo json_encode(['error' => 'Faltan datos requeridos: customers_id o customers_type no están definidos.']);
@@ -117,6 +124,9 @@ if ($latestHistory && isset($latestHistory['kundnr'])) {
     $lastKundNr = (int)$latestHistory['kundnr'];
 }
 
+// Affärsregel: Endast kunder som har minst en faktura (JOIN si_invoices) inkluderas.
+// Affärsregel: Exkludera kunder med namn som matchar '%Uppköpet%'.
+// OBS: Batchstorlek är fast för att undvika långkörande requests.
 $sql = "SELECT DISTINCT
     CONVERT(si_customers.name USING utf8) AS 'Name',
     si_customers.email AS 'Email',
@@ -156,6 +166,7 @@ if ($result->num_rows > 0) {
 }
 
 try {
+    // Syfte: Spara sista raden i batchen som ny cursor.
     $latest = $users[count($users) - 1];
     $latestKundNr = (int)($latest['KundNr'] ?? 0);
     $latestName = (string)($latest['Name'] ?? '');

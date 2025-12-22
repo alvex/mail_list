@@ -1,10 +1,13 @@
 <?php
 require_once 'db_config.php';
 
+// Syfte: Central DB-anslutningsfabrik för flera scheman med schema-specifika credentials.
+// OBS: Anroparen ansvarar för att hantera exceptions och stänga anslutningen.
 function getDbConnectionFor($dbName) {
     $dbUser = DB_USER;
     $dbPass = DB_PASS;
 
+    // OBS: Vissa scheman använder separata credentials; annars används default.
     if ($dbName === DB_NAME_USERS_MAIL) {
         $dbUser = DB_USER_USERS_MAIL;
         $dbPass = DB_PASS_USERS_MAIL;
@@ -21,6 +24,7 @@ function getDbConnectionFor($dbName) {
         error_log('Database connection error (' . $dbName . '): ' . $conn->connect_error);
         throw new Exception('Database connection failed');
     }
+    // OBS: Tvinga UTF-8 för konsekvent hantering av svenska tecken.
     $conn->set_charset('utf8mb4');
     return $conn;
 }

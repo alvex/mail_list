@@ -3,6 +3,7 @@ session_start();
 include 'config.php';
 
 // Check if user is logged in
+// OBS: Admin-sida för hantering av inloggningsanvändare; session-timeout ska gälla.
 $timeout = 30 * 60; // 30 minutes
 
 if (!isset($_SESSION['user_id'])) {
@@ -22,7 +23,7 @@ $_SESSION['last_activity'] = time();
 $message = '';
 $error = '';
 
-// Handle Add User
+// Hantera Lägg till användare
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['add_user'])) {
     $username = trim($_POST['username']);
     $password = $_POST['password'];
@@ -30,20 +31,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['add_user'])) {
     if (empty($username) || empty($password)) {
         $error = "Username and password are required.";
     } else {
-        // Check if username exists
+        // Affärsregel: Användarnamn måste vara unikt.
         $stmt = $conn->prepare("SELECT id FROM admin_users WHERE username = ?");
         $stmt->bind_param("s", $username);
         $stmt->execute();
         $stmt->store_result();
-        
+
         if ($stmt->num_rows > 0) {
             $error = "Username already exists.";
         } else {
             $stmt->close();
+            // OBS: Spara endast lösenordshash (aldrig plaintext-lösenord).
             $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+
             $stmt = $conn->prepare("INSERT INTO admin_users (username, password_hash) VALUES (?, ?)");
             $stmt->bind_param("ss", $username, $hashed_password);
-            
+
             if ($stmt->execute()) {
                 $message = "User created successfully.";
             } else {
@@ -54,7 +57,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['add_user'])) {
     }
 }
 
-// Handle Update User
+// Hantera Uppdatera användare
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_user'])) {
     $id = $_POST['user_id'];
     $username = trim($_POST['username']);
@@ -63,7 +66,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_user'])) {
     if (empty($username)) {
         $error = "Username is required.";
     } else {
-        // Check if username exists for other users
+        // Affärsregel: Användarnamn måste vara unikt bland alla användare.
         $stmt = $conn->prepare("SELECT id FROM admin_users WHERE username = ? AND id != ?");
         $stmt->bind_param("si", $username, $id);
         $stmt->execute();
@@ -74,7 +77,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_user'])) {
         } else {
             $stmt->close();
             if (!empty($password)) {
+                // OBS: Uppdatera bara lösenord om ett nytt lösenord angavs.
                 $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+
                 $stmt = $conn->prepare("UPDATE admin_users SET username = ?, password_hash = ? WHERE id = ?");
                 $stmt->bind_param("ssi", $username, $hashed_password, $id);
             } else {
@@ -84,7 +89,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_user'])) {
 
             if ($stmt->execute()) {
                 $message = "User updated successfully.";
-                // Clear edit mode by redirecting to self
+                // OBS: Rensa edit-läge via redirect för att undvika resubmission vid refresh.
                 header("Location: manage_users.php");
                 exit();
             } else {
@@ -95,22 +100,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_user'])) {
     }
 }
 
-// Handle Delete User
+// Hantera Radera användare
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['delete_user'])) {
     $user_id_to_delete = $_POST['user_id'];
-    
-    // Prevent deleting your own account while logged in
+
+    // Affärsregel: Förhindra att du raderar ditt eget konto medan du är inloggad.
     if ($user_id_to_delete == $_SESSION['user_id']) {
         $error = "You cannot delete your own account.";
     } else {
         $stmt = $conn->prepare("DELETE FROM admin_users WHERE id = ?");
         $stmt->bind_param("i", $user_id_to_delete);
+
         if ($stmt->execute()) {
             $message = "User deleted successfully.";
         } else {
             $error = "Error deleting user: " . $stmt->error;
         }
-        $stmt->close();
     }
 }
 

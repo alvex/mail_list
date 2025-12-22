@@ -1,6 +1,7 @@
 <?php
 session_start();
 
+// OBS: Session-timeout gäller för alla actions för att skydda kunddata.
 $timeout = 30 * 60;
 
 if (!isset($_SESSION['user_id'])) {
@@ -23,6 +24,11 @@ $_SESSION['last_activity'] = time();
 
 require_once 'kundlista_service.php';
 
+// Syfte: API för telefonlistor.
+// Förväntade query params:
+// - type: active|temp
+// - action: list|csv|latest
+// - per_page/limit: sidstorlek (begränsad)
 $type = isset($_GET['type']) ? strtolower(trim($_GET['type'])) : '';
 $action = isset($_GET['action']) ? strtolower(trim($_GET['action'])) : 'list';
 
@@ -43,6 +49,7 @@ if ($limit > 500) {
 
 try {
     if ($action === 'latest') {
+        // Syfte: Status-endpoint för UI (visar senast importerad kund per lista).
         $latestActive = kundlista_get_latest_active_history();
         $latestTemp = kundlista_get_latest_temp_history();
 
@@ -61,11 +68,13 @@ try {
         exit();
     }
 
+    // OBS: Repository läser limit från global för att slippa tråda parametern genom alla lager.
     $GLOBALS['kundlista_limit'] = $limit;
 
     $customers = $type === 'active' ? kundlista_get_active_customers() : kundlista_get_temp_customers();
 
     if ($action === 'csv') {
+        // Syfte: Exportera samma dataset som list-endpointen, men som nedladdningsbar CSV.
         $csv = kundlista_customers_to_csv($customers);
         $date = date('Ymd');
         $filename = $type === 'active' ? ('aktiva_kunder_' . $date . '.csv') : ('temp_kunder_' . $date . '.csv');
