@@ -17,7 +17,7 @@ define('DB_USER_FRESH_BOKNING', 'hemfresh_schedule');
 define('DB_PASS_FRESH_BOKNING', 'MisVainas0909');
 
 // Default database used by existing app parts
-define('DB_NAME', 'users_mail');
+define('DB_NAME', 'hemfresh_invoicesab');
 
 define('DB_NAME_USERS_MAIL', 'hemfresh_invoicesab');
 define('DB_NAME_FRESH_BOKNING', 'hemfresh_bokning');

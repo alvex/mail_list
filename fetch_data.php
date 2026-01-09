@@ -26,6 +26,15 @@ $_SESSION['last_activity'] = time();
 header('Content-Type: application/json');
 include 'config.php';
 
+$debug = (isset($_GET['debug']) && (string)$_GET['debug'] === '1');
+$debugInfo = [];
+
+function debug_log_event($message, $context = []) {
+    $payload = $context;
+    $payload['message'] = $message;
+    error_log('fetch_data debug: ' . json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+}
+
 // Syfte: Säkerställ att mail-historiktabellen finns.
 // OBS: Tabellen används som en enkel cursor för att undvika att hämta samma kunder igen.
 function ensure_mail_history_table($conn) {
@@ -42,6 +51,34 @@ function ensure_mail_history_table($conn) {
     if (!$conn->query($sql)) {
         error_log('Error creating si_mail_history table: ' . $conn->error);
         throw new Exception('Database query failed');
+    }
+
+    $idCol = null;
+    $idRes = $conn->query("SHOW COLUMNS FROM si_mail_history LIKE 'id'");
+    if ($idRes) {
+        $idCol = $idRes->fetch_assoc();
+        $idRes->free();
+    }
+
+    if ($idCol && (!isset($idCol['Extra']) || stripos((string)$idCol['Extra'], 'auto_increment') === false)) {
+        if (!$conn->query('ALTER TABLE si_mail_history MODIFY id INT NOT NULL AUTO_INCREMENT')) {
+            error_log('Error altering si_mail_history.id to AUTO_INCREMENT: ' . $conn->error);
+            throw new Exception('Database query failed');
+        }
+    }
+
+    $hasPrimary = false;
+    $pkRes = $conn->query("SHOW INDEX FROM si_mail_history WHERE Key_name = 'PRIMARY'");
+    if ($pkRes) {
+        $hasPrimary = ($pkRes->num_rows > 0);
+        $pkRes->free();
+    }
+
+    if (!$hasPrimary) {
+        if (!$conn->query('ALTER TABLE si_mail_history ADD PRIMARY KEY (id)')) {
+            error_log('Error adding PRIMARY KEY to si_mail_history: ' . $conn->error);
+            throw new Exception('Database query failed');
+        }
     }
 }
 
@@ -172,20 +209,81 @@ try {
     $latestName = (string)($latest['Name'] ?? '');
     $latestEmail = (string)($latest['Email'] ?? '');
 
+    if ($debug) {
+        $dbRow = null;
+        $dbRes = $conn->query('SELECT DATABASE() AS db');
+        if ($dbRes) {
+            $dbRow = $dbRes->fetch_assoc();
+            $dbRes->free();
+        }
+        $debugInfo['database'] = $dbRow['db'] ?? null;
+        $debugInfo['latest'] = [
+            'KundNr' => $latestKundNr,
+            'NameLen' => strlen($latestName),
+            'EmailLen' => strlen($latestEmail)
+        ];
+    }
+
     if ($latestKundNr > 0 && $latestName !== '' && $latestEmail !== '') {
         $sqlInsert = "INSERT INTO si_mail_history (customer_type, kundnr, name, email) VALUES (?, ?, ?, ?)";
         $stmtInsert = $conn->prepare($sqlInsert);
-        if ($stmtInsert) {
+        if (!$stmtInsert) {
+            if ($debug) {
+                $debugInfo['insert'] = [
+                    'prepared' => false,
+                    'errno' => $conn->errno,
+                    'error' => $conn->error
+                ];
+            }
+            debug_log_event('insert prepare failed', [
+                'errno' => $conn->errno,
+                'error' => $conn->error
+            ]);
+        } else {
             $stmtInsert->bind_param('iiss', $customers_type, $latestKundNr, $latestName, $latestEmail);
-            $stmtInsert->execute();
+            $ok = $stmtInsert->execute();
+
+            if (!$ok) {
+                if ($debug) {
+                    $debugInfo['insert'] = [
+                        'prepared' => true,
+                        'executed' => false,
+                        'errno' => $stmtInsert->errno,
+                        'error' => $stmtInsert->error
+                    ];
+                }
+                debug_log_event('insert execute failed', [
+                    'errno' => $stmtInsert->errno,
+                    'error' => $stmtInsert->error,
+                    'customer_type' => $customers_type,
+                    'kundnr' => $latestKundNr
+                ]);
+            } else {
+                if ($debug) {
+                    $debugInfo['insert'] = [
+                        'prepared' => true,
+                        'executed' => true,
+                        'affected_rows' => $stmtInsert->affected_rows,
+                        'insert_id' => $stmtInsert->insert_id
+                    ];
+                }
+            }
+
             $stmtInsert->close();
         }
     }
 } catch (Exception $e) {
     error_log('fetch_data history insert error: ' . $e->getMessage());
+    if ($debug) {
+        $debugInfo['exception'] = $e->getMessage();
+    }
 }
 
-echo json_encode($users);
+if ($debug) {
+    echo json_encode(['users' => $users, 'debug' => $debugInfo]);
+} else {
+    echo json_encode($users);
+}
 
 $stmt->close();
 $conn->close();

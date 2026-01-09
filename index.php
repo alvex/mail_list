@@ -28,14 +28,26 @@ $_SESSION['last_activity'] = time();
 
 <!-- Dependencias -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<style>
+.epost-summary-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 999px;
+    padding: 6px 10px;
+    background: #f6f8fa;
+    display: inline-flex;
+    gap: 10px;
+}
+</style>
 </head>
+
 <body>
 <div class="container">
     <?php $activePage = 'epostlista'; require_once 'top_menu.php'; ?>
        <div style="display: flex; justify-content: space-between; align-items: center;">
-        <h1>Lista de Usuarios</h1>
+        <h1>Epostlistan</h1>
     </div>
     <form id="user-form">
+
         <div>
             <label for="customers_id">Customer ID:</label>
             <input type="number" id="customers_id" name="customers_id">
@@ -49,10 +61,17 @@ $_SESSION['last_activity'] = time();
         </div>
         <button type="submit">Enviar</button>
     </form>
-    <div id="latestSummary" style="display:flex; gap:10px; flex-wrap:wrap; margin-top: 10px; margin-bottom: 10px;">
-        <span id="latestActive" class="kundlista-badge">Senaste aktiv: -</span>
-        <span id="latestTemp" class="kundlista-badge">Senaste temp: -</span>
+    <div class="epost-summary-card" style="margin-top: 10px; margin-bottom: 10px;">
+        <div id="latestSummary" style="display:flex; gap:20px; flex-wrap:wrap;">
+            <span id="latestActive" class="kundlista-badge">Senaste aktiv: -</span>
+        </div>
     </div>
+    <div class="epost-summary-card" style="margin-top: 10px; margin-bottom: 10px;">
+        <div id="latestSummary" style="display:flex; gap:20px; flex-wrap:wrap;">            
+            <span id="latestTemp" class="kundlista-badge">Senaste temp: -</span>
+        </div>
+    </div>
+
     <div id="message" style="color: red;"></div>
     <table id="user-table">
         <thead>
@@ -71,12 +90,21 @@ $_SESSION['last_activity'] = time();
 </div>
 
 <script>
+function decodeHtmlEntities(value) {
+    if (value === null || value === undefined) {
+        return '';
+    }
+    const txt = document.createElement('textarea');
+    txt.innerHTML = String(value);
+    return txt.value;
+}
+
 function formatLatestRow(row) {
     if (!row) {
         return '-';
     }
     const kundnr = row.kundnr ?? '-';
-    const name = row.name ?? '';
+    const name = decodeHtmlEntities(row.name ?? '');
     const email = row.email ?? '';
     const details = [name, email].filter(Boolean).join(' - ');
     return kundnr + (details ? (' - ' + details) : '');
@@ -132,7 +160,7 @@ document.getElementById('user-form').addEventListener('submit', async (event) =>
 
         result.forEach((user) => {
             const row = userTable.insertRow();
-            row.insertCell(0).textContent = user.Name;
+            row.insertCell(0).textContent = decodeHtmlEntities(user.Name);
             row.insertCell(1).textContent = user.Email;
             row.insertCell(2).textContent = user.KundNr;
         });
