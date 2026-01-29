@@ -25,16 +25,77 @@ function kundlista_normalize_phone($phoneRaw) {
     return '+46' . $withoutLeadingZero;
 }
 
+function kundlista_save_exported_phones_to_cal_phone_list($customers) {
+    if (!is_array($customers) || count($customers) === 0) {
+        return;
+    }
+
+    $conn = getDbConnectionFor(DB_NAME_FRESH_BOKNING);
+
+    $sql = "INSERT INTO cal_phone_list (memberid, name, phone, created_at) VALUES (?, ?, ?, NOW())\n            ON DUPLICATE KEY UPDATE\n                name = VALUES(name),\n                memberid = VALUES(memberid)";
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        $err = $conn->error;
+        $conn->close();
+        error_log('Prepare failed: ' . $err);
+        throw new Exception('Database query failed');
+    }
+
+    foreach ($customers as $c) {
+        $memberid = isset($c['memberid']) ? (int)$c['memberid'] : 0;
+        $name = (string)($c['name'] ?? '');
+        $phone = (string)($c['phone'] ?? '');
+
+        if ($phone === '') {
+            continue;
+        }
+
+        $stmt->bind_param('iss', $memberid, $name, $phone);
+        $stmt->execute();
+    }
+
+    $stmt->close();
+    $conn->close();
+}
+
+function kundlista_save_exported_phones_to_si_phone_list($customers) {
+    if (!is_array($customers) || count($customers) === 0) {
+        return;
+    }
+
+    $conn = getDbConnectionFor(DB_NAME_USERS_MAIL);
+
+    $sql = "INSERT INTO si_phone_list (memberid, name, phone, created_at) VALUES (?, ?, ?, NOW())\n            ON DUPLICATE KEY UPDATE\n                name = VALUES(name),\n                memberid = VALUES(memberid)";
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        $err = $conn->error;
+        $conn->close();
+        error_log('Prepare failed: ' . $err);
+        throw new Exception('Database query failed');
+    }
+
+    foreach ($customers as $c) {
+        $memberid = isset($c['memberid']) ? (int)$c['memberid'] : 0;
+        $name = (string)($c['name'] ?? '');
+        $phone = (string)($c['phone'] ?? '');
+
+        if ($phone === '') {
+            continue;
+        }
+
+        $stmt->bind_param('iss', $memberid, $name, $phone);
+        $stmt->execute();
+    }
+
+    $stmt->close();
+    $conn->close();
+}
+
 // Syfte: Hämta aktiva kunder inkrementellt och spara cursor så nästa körning fortsätter från senaste memberid.
 function kundlista_get_active_customers() {
-    $lastMemberId = kundlista_get_last_memberid(DB_NAME_FRESH_BOKNING, 'cal_phone_list');
-    $lastMemberIdValue = $lastMemberId !== null ? $lastMemberId : 0;
-
-    $rows = kundlista_fetch_cal_login_since($lastMemberIdValue);
+    $rows = kundlista_fetch_cal_login_since(0);
 
     $customers = [];
-    $historyRows = [];
-
     foreach ($rows as $row) {
         $memberid = (int)$row['memberid'];
         // OBS: Vi returnerar fname/lname separat (för integrationsbehov) men behåller även sammanslaget name för UI.
@@ -55,38 +116,26 @@ function kundlista_get_active_customers() {
             'phone' => $phone,
             'type' => 'Aktiv'
         ];
-
-        $historyRows[] = [
-            'memberid' => $memberid,
-            'name' => $name
-        ];
     }
-
-    kundlista_insert_history_rows(DB_NAME_FRESH_BOKNING, 'cal_phone_list', $historyRows);
 
     return $customers;
 }
 
 // Syfte: Används av UI för att visa synkstatus (senast importerad rad).
 function kundlista_get_latest_active_history() {
-    return kundlista_get_latest_history_row(DB_NAME_FRESH_BOKNING, 'cal_phone_list');
+    return null;
 }
 
 // Syfte: Används av UI för att visa synkstatus (senast importerad rad).
 function kundlista_get_latest_temp_history() {
-    return kundlista_get_latest_history_row(DB_NAME_USERS_MAIL, 'si_phone_list');
+    return null;
 }
 
 // Syfte: Hämta temp-kunder inkrementellt och spara cursor så nästa körning fortsätter från senaste memberid.
 function kundlista_get_temp_customers() {
-    $lastMemberId = kundlista_get_last_memberid(DB_NAME_USERS_MAIL, 'si_phone_list');
-    $lastMemberIdValue = $lastMemberId !== null ? $lastMemberId : 0;
-
-    $rows = kundlista_fetch_si_customers_since($lastMemberIdValue);
+    $rows = kundlista_fetch_si_customers_since(0);
 
     $customers = [];
-    $historyRows = [];
-
     foreach ($rows as $row) {
         $memberid = (int)$row['memberid'];
         $name = kundlista_build_name($row['fname'] ?? '', $row['lname'] ?? '');
@@ -102,14 +151,7 @@ function kundlista_get_temp_customers() {
             'phone' => $phone,
             'type' => 'Temp'
         ];
-
-        $historyRows[] = [
-            'memberid' => $memberid,
-            'name' => $name
-        ];
     }
-
-    kundlista_insert_history_rows(DB_NAME_USERS_MAIL, 'si_phone_list', $historyRows);
 
     return $customers;
 }

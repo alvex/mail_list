@@ -1,0 +1,8 @@
+[09-Jan-2026 00:06:11 Europe/Stockholm] fetch_data history insert error: Field 'id' doesn't have a default value
+[09-Jan-2026 00:06:28 Europe/Stockholm] fetch_data history insert error: Field 'id' doesn't have a default value
+[25-Jan-2026 23:16:14 Europe/Stockholm] api_kundlista error: Field 'id' doesn't have a default value
+[25-Jan-2026 23:16:33 Europe/Stockholm] api_kundlista error: Field 'id' doesn't have a default value
+[25-Jan-2026 23:16:38 Europe/Stockholm] api_kundlista error: Field 'id' doesn't have a default value
+[25-Jan-2026 23:16:38 Europe/Stockholm] api_kundlista error: Field 'id' doesn't have a default value
+[25-Jan-2026 23:58:20 Europe/Stockholm] api_kundlista error: Field 'id' doesn't have a default value
+[25-Jan-2026 23:58:36 Europe/Stockholm] api_kundlista error: Field 'id' doesn't have a default value

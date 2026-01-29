@@ -49,9 +49,9 @@ if ($limit > 500) {
 
 try {
     if ($action === 'latest') {
-        // Syfte: Status-endpoint för UI (visar senast importerad kund per lista).
-        $latestActive = kundlista_get_latest_active_history();
-        $latestTemp = kundlista_get_latest_temp_history();
+        // OBS: List-endpointen skriver inte längre till DB. Ingen "senaste importerad" finns.
+        $latestActive = null;
+        $latestTemp = null;
 
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode([
@@ -75,6 +75,11 @@ try {
 
     if ($action === 'csv') {
         // Syfte: Exportera samma dataset som list-endpointen, men som nedladdningsbar CSV.
+        // Affärsregel: Telefonnummer sparas endast i samband med export.
+        kundlista_save_exported_phones_to_cal_phone_list($customers);
+        if ($type === 'temp') {
+            kundlista_save_exported_phones_to_si_phone_list($customers);
+        }
         $csv = kundlista_customers_to_csv($customers);
         $date = date('Ymd');
         $filename = $type === 'active' ? ('aktiva_kunder_' . $date . '.csv') : ('temp_kunder_' . $date . '.csv');

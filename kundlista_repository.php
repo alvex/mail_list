@@ -64,10 +64,13 @@ function kundlista_fetch_cal_login_since($lastMemberId) {
         "INNER JOIN cal_reservation_users AS resusers ON resusers.resid = res.resid " .
         "INNER JOIN cal_login AS users ON users.memberid = resusers.memberid " .
         "WHERE rs.status = 'a' " .
-        "AND res.start_date >= ? " .
+        "AND res.start_date >= UNIX_TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 1 YEAR)) " .
+        "AND users.phone IS NOT NULL " .
+        "AND TRIM(users.phone) <> '' " .
+        "AND TRIM(users.phone) LIKE '07%' " .
         "AND users.memberid > ? " .
         "GROUP BY users.memberid, users.fname, users.lname, users.phone " .
-        "HAVING last_end <= UNIX_TIMESTAMP(DATE_ADD(FROM_UNIXTIME(first_start), INTERVAL 3 MONTH)) " .
+        "HAVING last_end <= UNIX_TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL 3 MONTH)) " .
         "ORDER BY users.memberid ASC " .
         "LIMIT ?";
     $stmt = $conn->prepare($sql);
@@ -80,8 +83,7 @@ function kundlista_fetch_cal_login_since($lastMemberId) {
 
     $limit = isset($GLOBALS['kundlista_limit']) ? (int)$GLOBALS['kundlista_limit'] : 50;
 
-    $nowTs = time();
-    $stmt->bind_param('iii', $nowTs, $lastMemberId, $limit);
+    $stmt->bind_param('ii', $lastMemberId, $limit);
     $stmt->execute();
     $result = $stmt->get_result();
 
@@ -101,7 +103,15 @@ function kundlista_fetch_cal_login_since($lastMemberId) {
 function kundlista_fetch_si_customers_since($lastMemberId) {
     $conn = getDbConnectionFor(DB_NAME_USERS_MAIL);
 
-    $sql = "SELECT id AS memberid, name AS fname, '' AS lname, CASE WHEN phone IS NOT NULL AND TRIM(phone) <> '' AND phone LIKE '07%' THEN phone WHEN mobile_phone IS NOT NULL AND TRIM(mobile_phone) <> '' AND mobile_phone LIKE '07%' THEN mobile_phone ELSE NULL END AS phone FROM si_customers WHERE id > ? AND enabled = ? ORDER BY id ASC LIMIT ?";
+    $sql = "SELECT id AS memberid, name AS fname, '' AS lname, CASE " .
+        "WHEN phone IS NOT NULL AND TRIM(phone) <> '' AND TRIM(phone) LIKE '07%' THEN TRIM(phone) " .
+        "WHEN mobile_phone IS NOT NULL AND TRIM(mobile_phone) <> '' AND TRIM(mobile_phone) LIKE '07%' THEN TRIM(mobile_phone) " .
+        "ELSE NULL END AS phone " .
+        "FROM si_customers " .
+        "WHERE id > ? AND enabled = ? " .
+        "AND ((phone IS NOT NULL AND TRIM(phone) <> '' AND TRIM(phone) LIKE '07%') " .
+        "OR (mobile_phone IS NOT NULL AND TRIM(mobile_phone) <> '' AND TRIM(mobile_phone) LIKE '07%')) " .
+        "ORDER BY id ASC LIMIT ?";
     $stmt = $conn->prepare($sql);
     if (!$stmt) {
         $err = $conn->error;

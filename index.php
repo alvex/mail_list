@@ -47,11 +47,7 @@ $_SESSION['last_activity'] = time();
         <h1>Epostlistan</h1>
     </div>
     <form id="user-form">
-
-        <div>
-            <label for="customers_id">Customer ID:</label>
-            <input type="number" id="customers_id" name="customers_id">
-        </div>
+        
         <div>
             <label for="customers_type">Customer Type:</label>
             <select id="customers_type" name="customers_type" required>

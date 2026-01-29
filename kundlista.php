@@ -42,6 +42,12 @@ $_SESSION['last_activity'] = time();
 
     <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
         <h1>Telefonlista</h1>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+            <a href="phone_list.php" class="kundlista-btn" style="text-decoration:none; display:inline-flex; align-items:center; gap:8px;">
+                <span aria-hidden="true">📞</span>
+                <span>Telefonlista</span>
+            </a>
+        </div>
     </div>
 
     <div class="kundlista-card">
@@ -62,11 +68,6 @@ $_SESSION['last_activity'] = time();
                 </select>
                 <span id="currentType" class="kundlista-badge">Ingen lista</span>
             </div>
-        </div>
-
-        <div id="latestSummary" style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
-            <span id="latestActive" class="kundlista-badge">Senaste aktiv: -</span>
-            <span id="latestTemp" class="kundlista-badge">Senaste temp: -</span>
         </div>
 
         <div id="kundlista-message" style="color: red;"></div>
@@ -117,30 +118,6 @@ function renderRows(rows) {
         tr.insertCell(2).textContent = r.phone;
         tr.insertCell(3).textContent = r.type;
     });
-}
-
-function formatLatestRow(row) {
-    if (!row) {
-        return '-';
-    }
-    const memberid = row.memberid ?? '-';
-    const name = row.name ?? '';
-    return memberid + (name ? (' - ' + name) : '');
-}
-
-async function loadLatestSummary() {
-    try {
-        const res = await fetch('api_kundlista.php?action=latest');
-        if (res.status === 403) {
-            window.location.href = 'login.php';
-            return;
-        }
-        const data = await res.json();
-        document.getElementById('latestActive').textContent = 'Senaste aktiv: ' + formatLatestRow(data && data.active ? data.active : null);
-        document.getElementById('latestTemp').textContent = 'Senaste temp: ' + formatLatestRow(data && data.temp ? data.temp : null);
-    } catch (e) {
-        console.error(e);
-    }
 }
 
 async function loadType(type) {
@@ -207,7 +184,6 @@ document.getElementById('perPage').addEventListener('change', () => {
     }
 });
 
-loadLatestSummary();
 </script>
 </body>
 </html>
