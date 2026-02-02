@@ -1,27 +1,6 @@
 <?php
-session_start();
-
-// OBS: Denna endpoint returnerar kunders e-post; sessionskydd krävs.
-// Check if user is logged in
-$timeout = 30 * 60; // 30 minutes
-
-if (!isset($_SESSION['user_id'])) {
-    header('Content-Type: application/json');
-    header('HTTP/1.1 403 Forbidden');
-    echo json_encode(['error' => 'Unauthorized access']);
-    exit();
-}
-
-if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > $timeout)) {
-    session_unset();
-    session_destroy();
-    header('Content-Type: application/json');
-    header('HTTP/1.1 403 Forbidden');
-    echo json_encode(['error' => 'Session expired']);
-    exit();
-}
-
-$_SESSION['last_activity'] = time();
+require_once __DIR__ . '/app/middleware/auth.php';
+auth_require_json(30 * 60);
 
 header('Content-Type: application/json');
 include 'config.php';

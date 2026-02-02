@@ -1,26 +1,6 @@
 <?php
-session_start();
-
-// OBS: Session-timeout gäller för alla actions för att skydda kunddata.
-$timeout = 30 * 60;
-
-if (!isset($_SESSION['user_id'])) {
-    header('Content-Type: application/json');
-    header('HTTP/1.1 403 Forbidden');
-    echo json_encode(['error' => 'Unauthorized access']);
-    exit();
-}
-
-if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > $timeout)) {
-    session_unset();
-    session_destroy();
-    header('Content-Type: application/json');
-    header('HTTP/1.1 403 Forbidden');
-    echo json_encode(['error' => 'Session expired']);
-    exit();
-}
-
-$_SESSION['last_activity'] = time();
+require_once __DIR__ . '/app/middleware/auth.php';
+auth_require_json(30 * 60);
 
 require_once 'kundlista_service.php';
 
@@ -76,8 +56,9 @@ try {
     if ($action === 'csv') {
         // Syfte: Exportera samma dataset som list-endpointen, men som nedladdningsbar CSV.
         // Affärsregel: Telefonnummer sparas endast i samband med export.
-        kundlista_save_exported_phones_to_cal_phone_list($customers);
-        if ($type === 'temp') {
+        if ($type === 'active') {
+            kundlista_save_exported_phones_to_cal_phone_list($customers);
+        } else {
             kundlista_save_exported_phones_to_si_phone_list($customers);
         }
         $csv = kundlista_customers_to_csv($customers);

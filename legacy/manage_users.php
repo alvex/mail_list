@@ -1,24 +1,8 @@
 <?php
-session_start();
+require_once __DIR__ . '/app/middleware/auth.php';
+auth_require_html('login.php', 30 * 60);
+
 include 'config.php';
-
-// Check if user is logged in
-// OBS: Admin-sida för hantering av inloggningsanvändare; session-timeout ska gälla.
-$timeout = 30 * 60; // 30 minutes
-
-if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php");
-    exit();
-}
-
-if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > $timeout)) {
-    session_unset();
-    session_destroy();
-    header("Location: login.php");
-    exit();
-}
-
-$_SESSION['last_activity'] = time();
 
 $message = '';
 $error = '';

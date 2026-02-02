@@ -1,0 +1,127 @@
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    background-color: #f0f0f0;
+}
+
+.container {
+    margin: 20px auto;
+    max-width: 80%;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+}
+
+h1 {
+    color: #333;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0 auto;
+}
+
+table,
+th,
+td {
+    border: 1px solid #ddd;
+}
+
+th,
+td {
+    padding: 10px;
+    text-align: left;
+}
+
+th {
+    background-color: #4CAF50;
+    color: white;
+}
+
+td:nth-child(1) {
+    font-weight: bold;
+}
+
+tbody tr:nth-child(odd) {
+    background-color: #f9f9f9;
+}
+
+tbody tr:nth-child(even) {
+    background-color: #fff;
+}
+
+tbody tr:hover {
+    background-color: #d6eeee;
+}
+
+thead tr {
+    background-color: #4CAF50;
+    color: #ffffff;
+}
+
+.highlight-row {
+    background-color: #ffe619;
+}
+
+.topmenu {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    border-radius: 12px;
+    background: #ffffff;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    /* Soft shadow like image */
+}
+
+.topmenu-left,
+.topmenu-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    /* More spacing between links */
+    flex-wrap: wrap;
+}
+
+.topmenu-link {
+    text-decoration: none;
+    color: #0f172a;
+    /* Dark text */
+    font-weight: 700;
+    font-size: 16px;
+    padding: 8px 0;
+    /* Minimal padding for text links */
+    border-radius: 0;
+    border: none;
+    position: relative;
+}
+
+.topmenu-link:hover {
+    background: transparent;
+    color: #0d6efd;
+    /* Blue hover text */
+}
+
+.topmenu-link.active {
+    background: transparent;
+    color: #0f172a;
+    /* Maybe add an underline or just keep it text */
+}
+
+.topmenu-link.logout {
+    background: #dc3545;
+    /* Red button */
+    color: #ffffff;
+    padding: 8px 20px;
+    border-radius: 8px;
+}
+
+.topmenu-link.logout:hover {
+    background: #c82333;
+    color: white;
+}

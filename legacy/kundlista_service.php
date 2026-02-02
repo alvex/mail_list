@@ -25,6 +25,26 @@ function kundlista_normalize_phone($phoneRaw) {
     return '+46' . $withoutLeadingZero;
 }
 
+function kundlista_get_last_saved_memberid_active() {
+    try {
+        $last = kundlista_get_last_memberid(DB_NAME_FRESH_BOKNING, 'cal_phone_list');
+        return $last !== null ? (int)$last : 0;
+    } catch (Exception $e) {
+        error_log('kundlista_get_last_saved_memberid_active error: ' . $e->getMessage());
+        return 0;
+    }
+}
+
+function kundlista_get_last_saved_memberid_temp() {
+    try {
+        $last = kundlista_get_last_memberid(DB_NAME_USERS_MAIL, 'si_phone_list');
+        return $last !== null ? (int)$last : 0;
+    } catch (Exception $e) {
+        error_log('kundlista_get_last_saved_memberid_temp error: ' . $e->getMessage());
+        return 0;
+    }
+}
+
 function kundlista_save_exported_phones_to_cal_phone_list($customers) {
     if (!is_array($customers) || count($customers) === 0) {
         return;
@@ -93,7 +113,8 @@ function kundlista_save_exported_phones_to_si_phone_list($customers) {
 
 // Syfte: Hämta aktiva kunder inkrementellt och spara cursor så nästa körning fortsätter från senaste memberid.
 function kundlista_get_active_customers() {
-    $rows = kundlista_fetch_cal_login_since(0);
+    $lastSaved = kundlista_get_last_saved_memberid_active();
+    $rows = kundlista_fetch_cal_login_since($lastSaved);
 
     $customers = [];
     foreach ($rows as $row) {
@@ -133,7 +154,8 @@ function kundlista_get_latest_temp_history() {
 
 // Syfte: Hämta temp-kunder inkrementellt och spara cursor så nästa körning fortsätter från senaste memberid.
 function kundlista_get_temp_customers() {
-    $rows = kundlista_fetch_si_customers_since(0);
+    $lastSaved = kundlista_get_last_saved_memberid_temp();
+    $rows = kundlista_fetch_si_customers_since($lastSaved);
 
     $customers = [];
     foreach ($rows as $row) {
